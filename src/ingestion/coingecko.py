@@ -30,7 +30,8 @@ def fetch_crypto_data():
 def save_raw_data(data):
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
-    output_dir = Path("data/raw")
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    output_dir = PROJECT_ROOT / "data" / "raw"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = output_dir / f"crypto_{timestamp}.json"
