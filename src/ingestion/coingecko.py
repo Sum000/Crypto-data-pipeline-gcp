@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from src.storage.gcs import upload_file_to_gcs
 from pathlib import Path
 
 import requests
@@ -32,6 +33,7 @@ def save_raw_data(data):
 
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
     output_dir = PROJECT_ROOT / "data" / "raw"
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = output_dir / f"crypto_{timestamp}.json"
@@ -39,7 +41,20 @@ def save_raw_data(data):
     with open(output_file, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=2)
 
-    print(f"Raw data saved to: {output_file}")
+    print(f"Raw data saved locally: {output_file}")
+
+    gcs_object_name = (
+        f"raw/crypto/"
+        f"{timestamp[:4]}/"
+        f"{timestamp[4:6]}/"
+        f"{timestamp[6:8]}/"
+        f"crypto_{timestamp}.json"
+    )
+
+    upload_file_to_gcs(
+        output_file,
+        gcs_object_name,
+    )
 
 
 if __name__ == "__main__":

@@ -1,22 +1,20 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+
+from src.storage.gcs import (
+    download_file_from_gcs,
+    get_latest_raw_object,
+    upload_file_to_gcs,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 TRANSFORMED_DATA_DIR = PROJECT_ROOT / "data" / "transformed"
-
-
-def get_latest_raw_file():
-    files = sorted(RAW_DATA_DIR.glob("crypto_*.json"))
-
-    if not files:
-        raise FileNotFoundError("No raw crypto data found.")
-
-    return files[-1]
 
 
 def load_raw_data(file_path):
@@ -66,21 +64,61 @@ def transform_data(data):
 
 
 def save_transformed_data(df):
-    TRANSFORMED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    TRANSFORMED_DATA_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    output_file = TRANSFORMED_DATA_DIR / "crypto_market.csv"
+    timestamp = datetime.now(timezone.utc).strftime(
+        "%Y%m%dT%H%M%SZ"
+    )
 
-    df.to_csv(output_file, index=False)
+    output_file = (
+        TRANSFORMED_DATA_DIR
+        / f"crypto_market_{timestamp}.csv"
+    )
 
-    print(f"Transformed data saved to: {output_file}")
+    df.to_csv(
+        output_file,
+        index=False,
+    )
+
+    print(
+        f"Transformed data saved locally: {output_file}"
+    )
+
+    gcs_object_name = (
+        f"transformed/crypto/"
+        f"{timestamp[:4]}/"
+        f"{timestamp[4:6]}/"
+        f"{timestamp[6:8]}/"
+        f"crypto_market_{timestamp}.csv"
+    )
+
+    upload_file_to_gcs(
+        output_file,
+        gcs_object_name,
+    )
 
 
 if __name__ == "__main__":
-    raw_file = get_latest_raw_file()
+    raw_object = get_latest_raw_object()
 
-    print(f"Reading: {raw_file}")
+    print(f"Latest GCS raw object: {raw_object}")
 
-    data = load_raw_data(raw_file)
+    RAW_DATA_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    local_raw_file = RAW_DATA_DIR / "latest_raw.json"
+
+    download_file_from_gcs(
+        raw_object,
+        local_raw_file,
+    )
+
+    data = load_raw_data(local_raw_file)
 
     df = transform_data(data)
 
