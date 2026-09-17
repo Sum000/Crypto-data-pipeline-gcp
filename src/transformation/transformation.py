@@ -1,3 +1,6 @@
+from src.quality.validation import (
+    validate_transformed_data,
+)
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +25,7 @@ def load_raw_data(file_path):
         return json.load(file)
 
 
-def transform_data(data):
+def transform_data(data, ingestion_timestamp):
     df = pd.DataFrame(data)
 
     df = df[
@@ -58,7 +61,7 @@ def transform_data(data):
         }
     )
 
-    df["ingestion_timestamp"] = pd.Timestamp.now(tz="UTC")
+    df["ingestion_timestamp"] = ingestion_timestamp
 
     return df
 
@@ -122,15 +125,45 @@ def process_raw_object(raw_object_name):
 
     data = load_raw_data(local_raw_file)
 
-    df = transform_data(data)
+    ingestion_timestamp = get_ingestion_timestamp(
+    raw_object_name
+    )
+
+    df = transform_data(
+    data,
+    ingestion_timestamp,
+    )
+
+    
+
+
 
     print("\nTransformed data:")
     print(df)
+
+    print("\nRunning data quality checks...")
+
+    validate_transformed_data(df)
 
     transformed_gcs_uri = save_transformed_data(df)
 
     return transformed_gcs_uri
 
+
+def get_ingestion_timestamp(raw_object_name):
+    filename = Path(raw_object_name).stem
+
+    timestamp_string = filename.replace(
+        "crypto_",
+        ""
+    )
+
+    ingestion_timestamp = datetime.strptime(
+        timestamp_string,
+        "%Y%m%dT%H%M%SZ"
+    ).replace(tzinfo=timezone.utc)
+
+    return ingestion_timestamp
 
 
 if __name__ == "__main__":
