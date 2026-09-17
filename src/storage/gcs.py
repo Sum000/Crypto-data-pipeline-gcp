@@ -3,17 +3,19 @@ from google.cloud import storage
 
 BUCKET_NAME = "crypto-pipeline-project-bbbd1cf0-de1e-476f-af1"
 
-
 def upload_file_to_gcs(local_file_path, gcs_object_name):
     client = storage.Client()
 
     bucket = client.bucket(BUCKET_NAME)
-
     blob = bucket.blob(gcs_object_name)
 
     blob.upload_from_filename(local_file_path)
 
-    print(f"Uploaded to: gs://{BUCKET_NAME}/{gcs_object_name}")
+    gcs_uri = f"gs://{BUCKET_NAME}/{gcs_object_name}"
+
+    print(f"Uploaded to: {gcs_uri}")
+
+    return gcs_uri
 
 def download_file_from_gcs(gcs_object_name, local_file_path):
     client = storage.Client()

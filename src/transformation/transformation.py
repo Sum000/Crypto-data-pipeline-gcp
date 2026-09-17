@@ -95,10 +95,42 @@ def save_transformed_data(df):
         f"crypto_market_{timestamp}.csv"
     )
 
-    upload_file_to_gcs(
-        output_file,
-        gcs_object_name,
+    gcs_uri = upload_file_to_gcs(
+    output_file,
+    gcs_object_name,
+
     )
+
+    return gcs_uri
+
+
+def process_raw_object(raw_object_name):
+    RAW_DATA_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    local_raw_file = (
+        RAW_DATA_DIR
+        / Path(raw_object_name).name
+    )
+
+    download_file_from_gcs(
+        raw_object_name,
+        local_raw_file,
+    )
+
+    data = load_raw_data(local_raw_file)
+
+    df = transform_data(data)
+
+    print("\nTransformed data:")
+    print(df)
+
+    transformed_gcs_uri = save_transformed_data(df)
+
+    return transformed_gcs_uri
+
 
 
 if __name__ == "__main__":
@@ -125,4 +157,9 @@ if __name__ == "__main__":
     print("\nTransformed data:")
     print(df)
 
-    save_transformed_data(df)
+    transformed_gcs_uri = save_transformed_data(df)
+
+    print(
+        f"Transformed GCS URI: "
+        f"{transformed_gcs_uri}"
+    )

@@ -56,6 +56,8 @@ def save_raw_data(data):
         gcs_object_name,
     )
 
+    return gcs_object_name
+
 
 if __name__ == "__main__":
     data = fetch_crypto_data()
