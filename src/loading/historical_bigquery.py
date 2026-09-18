@@ -1,4 +1,5 @@
 import argparse
+import re
 
 from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
@@ -8,21 +9,38 @@ PROJECT_ID = "project-bbbd1cf0-de1e-476f-af1"
 DATASET_ID = "crypto_data"
 
 FINAL_TABLE_ID = "crypto_daily_history"
-STAGING_TABLE_ID = "crypto_daily_history_staging"
 
 FINAL_TABLE_REFERENCE = (
     f"{PROJECT_ID}.{DATASET_ID}.{FINAL_TABLE_ID}"
 )
 
-STAGING_TABLE_REFERENCE = (
-    f"{PROJECT_ID}.{DATASET_ID}.{STAGING_TABLE_ID}"
-)
+
+def get_staging_table_reference(crypto_id):
+    safe_crypto_id = re.sub(
+        r"[^A-Za-z0-9_]",
+        "_",
+        crypto_id,
+    )
+
+    staging_table_id = (
+        f"crypto_daily_history_staging_"
+        f"{safe_crypto_id}"
+    )
+
+    return (
+        f"{PROJECT_ID}."
+        f"{DATASET_ID}."
+        f"{staging_table_id}"
+    )
 
 
-def ensure_staging_table(client):
+def ensure_staging_table(
+    client,
+    staging_table_reference,
+):
     try:
         client.get_table(
-            STAGING_TABLE_REFERENCE
+            staging_table_reference
         )
 
     except NotFound:
@@ -31,7 +49,7 @@ def ensure_staging_table(client):
         )
 
         staging_table = bigquery.Table(
-            STAGING_TABLE_REFERENCE,
+            staging_table_reference,
             schema=final_table.schema,
         )
 
@@ -40,13 +58,15 @@ def ensure_staging_table(client):
         )
 
         print(
-            "Created historical staging table."
+            f"Created staging table: "
+            f"{staging_table_reference}"
         )
 
 
 def load_csv_to_staging(
     client,
     gcs_uri,
+    staging_table_reference,
 ):
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.CSV,
@@ -63,14 +83,14 @@ def load_csv_to_staging(
 
     load_job = client.load_table_from_uri(
         gcs_uri,
-        STAGING_TABLE_REFERENCE,
+        staging_table_reference,
         job_config=job_config,
     )
 
     load_job.result()
 
     staging_table = client.get_table(
-        STAGING_TABLE_REFERENCE
+        staging_table_reference
     )
 
     print(
@@ -79,11 +99,14 @@ def load_csv_to_staging(
     )
 
 
-def merge_staging_to_final(client):
+def merge_staging_to_final(
+    client,
+    staging_table_reference,
+):
     merge_query = f"""
     MERGE `{FINAL_TABLE_REFERENCE}` AS target
 
-    USING `{STAGING_TABLE_REFERENCE}` AS source
+    USING `{staging_table_reference}` AS source
 
     ON
         target.crypto_id = source.crypto_id
@@ -145,22 +168,32 @@ def merge_staging_to_final(client):
 
 def load_historical_csv_from_gcs(
     gcs_uri,
+    crypto_id,
 ):
     client = bigquery.Client(
         project=PROJECT_ID
     )
 
+    staging_table_reference = (
+        get_staging_table_reference(
+            crypto_id
+        )
+    )
+
     ensure_staging_table(
-        client
+        client,
+        staging_table_reference,
     )
 
     load_csv_to_staging(
         client,
         gcs_uri,
+        staging_table_reference,
     )
 
     merge_staging_to_final(
-        client
+        client,
+        staging_table_reference,
     )
 
     final_table = client.get_table(
@@ -184,14 +217,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--gcs-uri",
         required=True,
-        help=(
-            "GCS URI of the transformed "
-            "historical CSV."
-        ),
+    )
+
+    parser.add_argument(
+        "--crypto-id",
+        required=True,
     )
 
     args = parser.parse_args()
 
     load_historical_csv_from_gcs(
-        args.gcs_uri
+        args.gcs_uri,
+        args.crypto_id,
     )

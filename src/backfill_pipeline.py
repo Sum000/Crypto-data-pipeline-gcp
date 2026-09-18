@@ -78,7 +78,8 @@ def process_crypto(
     # BigQuery MERGE
 
     load_historical_csv_from_gcs(
-        transformed_gcs_uri
+        transformed_gcs_uri,
+        crypto_id
     )
 
     print(
