@@ -16,7 +16,14 @@ params = {
 }
 
 
-def fetch_crypto_data():
+def fetch_crypto_data(limit=10):
+    params = {
+        "vs_currency": "usd",
+        "order": "market_cap_desc",
+        "per_page": limit,
+        "page": 1,
+    }
+
     response = requests.get(
         API_URL,
         params=params,
@@ -26,6 +33,19 @@ def fetch_crypto_data():
     response.raise_for_status()
 
     return response.json()
+
+
+def get_top_crypto_ids(limit=5):
+    market_data = fetch_crypto_data(
+        limit=limit
+    )
+
+    crypto_ids = [
+        coin["id"]
+        for coin in market_data
+    ]
+
+    return crypto_ids
 
 
 def save_raw_data(data):

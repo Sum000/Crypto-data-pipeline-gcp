@@ -1,3 +1,7 @@
+from src.ingestion.coingecko import (
+    get_top_crypto_ids,
+)
+
 from src.ingestion.historical import (
     fetch_historical_data,
     save_historical_raw_data,
@@ -12,15 +16,8 @@ from src.loading.historical_bigquery import (
 )
 
 
-CRYPTOCURRENCIES = [
-    "bitcoin",
-    "ethereum",
-    "solana",
-    "ripple",
-    "binancecoin",
-]
-
-HISTORICAL_DAYS = 30
+TOP_N_CRYPTOCURRENCIES = 5
+BACKFILL_DAYS = 30
 
 
 def process_crypto(
@@ -31,8 +28,9 @@ def process_crypto(
         f"Processing historical data for: "
         f"{crypto_id}"
     )
+    print("=" * 60)
 
-    # Extracting historical data
+    #Extraction
 
     print(
         f"\nFetching {days} days "
@@ -49,7 +47,7 @@ def process_crypto(
         f"price observations."
     )
 
-    # Storing raw JSON in GCS
+    #Raw GCS
 
     raw_object_name, raw_gcs_uri = (
         save_historical_raw_data(
@@ -64,7 +62,7 @@ def process_crypto(
         f"{raw_object_name}"
     )
 
-    # STEP 3: Transform + validate
+    #Transformation & validation
 
     transformed_gcs_uri = (
         process_historical_raw_object(
@@ -77,41 +75,42 @@ def process_crypto(
         f"{transformed_gcs_uri}"
     )
 
-    # Load into BigQuery
+    # BigQuery MERGE
 
     load_historical_csv_from_gcs(
         transformed_gcs_uri
     )
 
     print(
-        f"\nCompleted historical pipeline "
+        f"\nCompleted historical processing "
         f"for {crypto_id}."
     )
 
 
-def run_historical_pipeline():
-    print("STARTING HISTORICAL CRYPTO PIPELINE")
+def run_backfill_pipeline():
+    print("=" * 60)
+    print("STARTING HISTORICAL BACKFILL PIPELINE")
+    print("=" * 60)
 
-    for crypto_id in CRYPTOCURRENCIES:
-        try:
-            process_crypto(
-                crypto_id,
-                HISTORICAL_DAYS,
-            )
-
-        except Exception as error:
-            print(
-                f"\nPipeline failed for "
-                f"{crypto_id}: {error}"
-            )
-
-            raise
+    cryptocurrencies = get_top_crypto_ids(
+        TOP_N_CRYPTOCURRENCIES
+    )
 
     print(
-        "HISTORICAL PIPELINE "
-        "COMPLETED SUCCESSFULLY"
+        f"\nSelected cryptocurrencies: "
+        f"{cryptocurrencies}"
     )
+
+    for crypto_id in cryptocurrencies:
+        process_crypto(
+            crypto_id,
+            BACKFILL_DAYS,
+        )
+
+    print("\n" + "=" * 60)
+    print("BACKFILL PIPELINE COMPLETED SUCCESSFULLY")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
-    run_historical_pipeline()
+    run_backfill_pipeline()
