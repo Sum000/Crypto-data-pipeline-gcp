@@ -1,3 +1,4 @@
+from src.config import LOCAL_DATA_ROOT
 import argparse
 import json
 from datetime import datetime, timezone
@@ -11,18 +12,16 @@ from src.storage.gcs import (
 )
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 RAW_DATA_DIR = (
-    PROJECT_ROOT
-    / "data"
+    LOCAL_DATA_ROOT
     / "raw"
     / "historical"
 )
 
 TRANSFORMED_DATA_DIR = (
-    PROJECT_ROOT
-    / "data"
+    LOCAL_DATA_ROOT
     / "transformed"
     / "historical"
 )

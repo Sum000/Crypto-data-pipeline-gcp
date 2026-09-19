@@ -1,3 +1,4 @@
+from src.config import LOCAL_DATA_ROOT
 import json
 from datetime import datetime, timezone
 from src.storage.gcs import upload_file_to_gcs
@@ -51,8 +52,8 @@ def get_top_crypto_ids(limit=5):
 def save_raw_data(data):
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
-    PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    output_dir = PROJECT_ROOT / "data" / "raw"
+    # PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    output_dir = LOCAL_DATA_ROOT / "raw"
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

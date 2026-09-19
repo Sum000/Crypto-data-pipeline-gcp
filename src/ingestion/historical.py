@@ -1,4 +1,4 @@
-
+from src.config import LOCAL_DATA_ROOT
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,7 +14,7 @@ API_URL = (
     "coins/{crypto_id}/market_chart"
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def create_retry_session():
@@ -103,13 +103,11 @@ def save_historical_raw_data(
     # Save local raw copy
 
     output_dir = (
-        PROJECT_ROOT
-        / "data"
-        / "raw"
-        / "historical"
-        / crypto_id
-    )
-
+    LOCAL_DATA_ROOT
+    / "raw"
+    / "historical"
+    / crypto_id
+)
     output_dir.mkdir(
         parents=True,
         exist_ok=True,

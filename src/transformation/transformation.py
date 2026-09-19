@@ -1,3 +1,4 @@
+from src.config import LOCAL_DATA_ROOT
 from src.quality.validation import (
     validate_transformed_data,
 )
@@ -14,10 +15,15 @@ from src.storage.gcs import (
 )
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW_DATA_DIR = (
+    LOCAL_DATA_ROOT
+    / "raw"
+)
 
-RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
-TRANSFORMED_DATA_DIR = PROJECT_ROOT / "data" / "transformed"
+TRANSFORMED_DATA_DIR = (
+    LOCAL_DATA_ROOT
+    / "transformed"
+)
 
 
 def load_raw_data(file_path):
